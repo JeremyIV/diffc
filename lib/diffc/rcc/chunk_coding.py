@@ -13,6 +13,17 @@ def partition_mu(dim, chunk_sizes, shared_seed=0):
         chunk_ndims.append(int(dim * chunk_size / total_bits))
     chunk_ndims.append(dim - sum(chunk_ndims))
 
+    # An empty chunk would still encode a seed (pure bitstream waste) while
+    # its dimensions pile into the last chunk, far exceeding what that
+    # chunk's 2^chunk_size candidates can represent.
+    if min(chunk_ndims) < 1:
+        raise ValueError(
+            f"Cannot partition {dim} dimensions into {len(chunk_sizes)} "
+            f"chunks: at least one chunk would receive zero dimensions. "
+            f"The step's Dkl is too large for the latent dimension at "
+            f"this max_chunk_size."
+        )
+
     partition_indices = np.concatenate(
         [np.full(ndims, i) for i, ndims in enumerate(chunk_ndims)]
     )
