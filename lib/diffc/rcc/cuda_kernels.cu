@@ -30,8 +30,13 @@ __global__ void reverse_channel_encode_kernel(
     if (idx >= K) return;
 
     curandState state;
-    curand_init(shared_seed, 0, idx * dim, &state);
-    
+    // Cast before multiplying: idx * dim is an int32 product, which wraps when
+    // idx * dim >= 2^31 (e.g. the upper candidates of a single 2^16-candidate
+    // chunk over >= 32768 dims). generate_sample_kernel computes the same
+    // offset in 64 bits, so the sample scored here would silently differ from
+    // the sample regenerated for the winning index.
+    curand_init(shared_seed, 0, ((unsigned long long)idx) * dim, &state);
+
     //curand_init(shared_seed + idx, 0, 0, &state);
     
     float log_w_value = 0.0f;
